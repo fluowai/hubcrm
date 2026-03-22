@@ -12,6 +12,11 @@ export interface Lead {
   reviewsCount?: number;
   category?: string;
   details?: string;
+  email?: string;
+  linkedin?: string;
+  cnpj?: string;
+  cnpjLocation?: string;
+  isLocationMatch?: boolean;
   source: 'google_maps' | 'google_search';
 }
 
@@ -52,9 +57,15 @@ export const prospectLeadsFromMaps = async (query: string, location: string): Pr
 export const enrichLeadWithSearch = async (lead: Lead): Promise<Lead> => {
   const ai = new GoogleGenAI({ apiKey });
   
-  const prompt = `Pesquise mais informações sobre a empresa "${lead.name}" localizada em "${lead.address}".
-  Tente encontrar o LinkedIn da empresa, e-mail de contato, ou outras informações relevantes para vendas.
-  Resuma as descobertas em um campo de detalhes.`;
+  const prompt = `Pesquise informações detalhadas sobre a empresa/profissional "${lead.name}" localizada em "${lead.address}".
+  
+  TAREFAS ESPECÍFICAS:
+  1. Tente encontrar o CNPJ oficial da empresa.
+  2. Verifique se a localização registrada no CNPJ (Cidade/Estado) coincide com o endereço fornecido: "${lead.address}".
+  3. Encontre o LinkedIn da empresa, e-mail de contato e website oficial.
+  4. Resuma as descobertas no campo "details".
+  
+  Se os dados de localização do CNPJ baterem com o endereço fornecido, defina "isLocationMatch" como true.`;
 
   try {
     const response = await ai.models.generateContent({
@@ -66,10 +77,13 @@ export const enrichLeadWithSearch = async (lead: Lead): Promise<Lead> => {
         responseSchema: {
           type: Type.OBJECT,
           properties: {
-            details: { type: Type.STRING, description: "Resumo das informações encontradas no Google Search" },
+            details: { type: Type.STRING, description: "Resumo das informações encontradas" },
             email: { type: Type.STRING },
             linkedin: { type: Type.STRING },
             website: { type: Type.STRING },
+            cnpj: { type: Type.STRING, description: "Número do CNPJ encontrado" },
+            cnpjLocation: { type: Type.STRING, description: "Localização (Cidade/Estado) registrada no CNPJ" },
+            isLocationMatch: { type: Type.BOOLEAN, description: "Se a localização do CNPJ bate com o endereço do lead" },
           }
         }
       },
@@ -80,7 +94,11 @@ export const enrichLeadWithSearch = async (lead: Lead): Promise<Lead> => {
       ...lead,
       details: enrichment.details || lead.details,
       website: enrichment.website || lead.website,
-      // We could add more fields to Lead interface if needed
+      email: enrichment.email || lead.email,
+      linkedin: enrichment.linkedin || lead.linkedin,
+      cnpj: enrichment.cnpj || lead.cnpj,
+      cnpjLocation: enrichment.cnpjLocation || lead.cnpjLocation,
+      isLocationMatch: enrichment.isLocationMatch ?? lead.isLocationMatch,
     };
   } catch (error) {
     console.error("Error enriching lead:", error);

@@ -37,6 +37,7 @@ import {
   Settings2,
   AlertTriangle,
   Eye,
+  CheckCircle,
 } from 'lucide-react';
 
 export const Icons = {
@@ -79,6 +80,7 @@ export const Icons = {
   Settings2: Settings2,
   AlertTriangle: AlertTriangle,
   Eye: Eye,
+  Success: CheckCircle,
 };
 
 export const Logo = () => (

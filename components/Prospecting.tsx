@@ -101,10 +101,15 @@ const Prospecting: React.FC = () => {
                       <p className="text-sm text-brand-text-secondary flex items-center">
                         <Icons.Info className="w-3 h-3 mr-1" /> {lead.address}
                       </p>
-                      <div className="flex items-center space-x-4 text-xs text-brand-text-secondary mt-2">
+                      <div className="flex flex-wrap items-center gap-4 text-xs text-brand-text-secondary mt-2">
                         {lead.phone && (
                           <span className="flex items-center">
                             <Icons.Phone className="w-3 h-3 mr-1" /> {lead.phone}
+                          </span>
+                        )}
+                        {lead.email && (
+                          <span className="flex items-center text-blue-600">
+                            <Icons.Info className="w-3 h-3 mr-1" /> {lead.email}
                           </span>
                         )}
                         {lead.rating && (
@@ -122,7 +127,35 @@ const Prospecting: React.FC = () => {
                             <Icons.Plug className="w-3 h-3 mr-1" /> Website
                           </a>
                         )}
+                        {lead.linkedin && (
+                          <a 
+                            href={lead.linkedin.startsWith('http') ? lead.linkedin : `https://${lead.linkedin}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="flex items-center text-blue-700 hover:underline"
+                          >
+                            <Icons.AIAgent className="w-3 h-3 mr-1" /> LinkedIn
+                          </a>
+                        )}
                       </div>
+                      
+                      {lead.cnpj && (
+                        <div className="mt-2 flex items-center space-x-3">
+                          <div className="px-2 py-1 bg-gray-100 rounded text-[11px] font-mono text-gray-700 border border-gray-200">
+                            <span className="font-bold mr-1">CNPJ:</span> {lead.cnpj}
+                          </div>
+                          {lead.isLocationMatch !== undefined && (
+                            <div className={`flex items-center text-[11px] font-medium ${lead.isLocationMatch ? 'text-green-600' : 'text-red-500'}`}>
+                              {lead.isLocationMatch ? (
+                                <><Icons.Success className="w-3 h-3 mr-1" /> Localização Confirmada</>
+                              ) : (
+                                <><Icons.Info className="w-3 h-3 mr-1" /> Divergência de Localização ({lead.cnpjLocation})</>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                       {lead.details && (
                         <div className="mt-3 p-3 bg-gray-50 rounded border border-brand-border text-sm italic text-brand-text-secondary">
                           {lead.details}
