@@ -4,23 +4,39 @@ import Button from './ui/Button';
 import Input from './ui/Input';
 import { Icons } from './icons';
 import { Lead, prospectLeadsFromMaps, enrichLeadWithSearch } from '../services/geminiService';
+import { usageService } from '../services/usageService';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../src/lib/AuthContext';
 
 const Prospecting: React.FC = () => {
+  const { organization } = useAuth();
   const [query, setQuery] = useState('');
   const [location, setLocation] = useState('');
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(false);
   const [enrichingId, setEnrichingId] = useState<string | null>(null);
+  const [limitError, setLimitError] = useState<string | null>(null);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!query || !location) return;
+    if (!query || !location || !organization) return;
 
     setLoading(true);
+    setLimitError(null);
     try {
-      const results = await prospectLeadsFromMaps(query, location);
+      const { canScrape, plan, usage } = await usageService.checkLimits(organization.id);
+      
+      if (!canScrape) {
+        setLimitError(`Limite de buscas atingido (${usage.scrapes_count}/${plan.scrapes_limit}). Faça upgrade do seu plano.`);
+        setLoading(false);
+        return;
+      }
+
+      const results = await prospectLeadsFromMaps(query, location, organization.google_api_key);
       setLeads(results);
+      
+      // Increment usage
+      await usageService.incrementScrapes(organization.id);
     } catch (error) {
       console.error("Search failed:", error);
     } finally {
@@ -31,7 +47,7 @@ const Prospecting: React.FC = () => {
   const handleEnrich = async (lead: Lead) => {
     setEnrichingId(lead.id);
     try {
-      const enrichedLead = await enrichLeadWithSearch(lead);
+      const enrichedLead = await enrichLeadWithSearch(lead, organization?.google_api_key);
       setLeads(prev => prev.map(l => l.id === lead.id ? enrichedLead : l));
     } catch (error) {
       console.error("Enrichment failed:", error);
@@ -76,6 +92,12 @@ const Prospecting: React.FC = () => {
             {loading ? 'Buscando...' : 'Buscar Leads'}
           </Button>
         </form>
+        {limitError && (
+          <div className="mt-4 p-3 bg-red-50 border border-red-100 rounded-lg text-red-600 text-sm flex items-center">
+            <Icons.AlertTriangle className="w-4 h-4 mr-2" />
+            {limitError}
+          </div>
+        )}
       </Card>
 
       <div className="grid grid-cols-1 gap-4">
@@ -151,6 +173,11 @@ const Prospecting: React.FC = () => {
                               ) : (
                                 <><Icons.Info className="w-3 h-3 mr-1" /> Divergência de Localização ({lead.cnpjLocation})</>
                               )}
+                            </div>
+                          )}
+                          {lead.isAdvertising && (
+                            <div className="flex items-center text-[11px] font-medium text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-100">
+                              <Icons.AIAgent className="w-3 h-3 mr-1" /> Anunciando no Google
                             </div>
                           )}
                         </div>

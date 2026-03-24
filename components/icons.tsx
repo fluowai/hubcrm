@@ -81,6 +81,7 @@ export const Icons = {
   AlertTriangle: AlertTriangle,
   Eye: Eye,
   Success: CheckCircle,
+  Edit: Pencil,
 };
 
 export const Logo = () => (
@@ -88,6 +89,6 @@ export const Logo = () => (
       <div className="w-8 h-8 bg-brand-yellow-dark rounded-md flex items-center justify-center">
           <div className="w-4 h-4 bg-gray-800 rounded-sm transform rotate-45" />
       </div>
-      <span className="font-bold text-xl text-brand-text-primary">LUMENCRM</span>
+      <span className="font-bold text-xl text-brand-text-primary">FLUOW AI</span>
   </div>
 );

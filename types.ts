@@ -7,7 +7,8 @@ export enum View {
   Contacts = 'Contatos',
   Connection = 'Conexão',
   Settings = 'Configurações',
-  SalesAutomation = 'Automação'
+  SalesAutomation = 'Automação',
+  SuperAdmin = 'Super Admin'
 }
 
 export interface User {

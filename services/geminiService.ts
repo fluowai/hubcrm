@@ -17,11 +17,14 @@ export interface Lead {
   cnpj?: string;
   cnpjLocation?: string;
   isLocationMatch?: boolean;
+  isAdvertising?: boolean;
+  adsDetails?: string;
   source: 'google_maps' | 'google_search';
 }
 
-export const prospectLeadsFromMaps = async (query: string, location: string): Promise<Lead[]> => {
-  const ai = new GoogleGenAI({ apiKey });
+export const prospectLeadsFromMaps = async (query: string, location: string, customApiKey?: string): Promise<Lead[]> => {
+  const finalApiKey = customApiKey || apiKey;
+  const ai = new GoogleGenAI({ apiKey: finalApiKey });
   
   const prompt = `Encontre leads de negócios para "${query}" em "${location}". 
   Extraia o nome, endereço, telefone, website (se disponível), avaliação, quantidade de avaliações e categoria de cada local.
@@ -30,7 +33,7 @@ export const prospectLeadsFromMaps = async (query: string, location: string): Pr
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3-flash-preview",
       contents: prompt,
       config: {
         tools: [{ googleMaps: {} }],
@@ -54,8 +57,9 @@ export const prospectLeadsFromMaps = async (query: string, location: string): Pr
   }
 };
 
-export const enrichLeadWithSearch = async (lead: Lead): Promise<Lead> => {
-  const ai = new GoogleGenAI({ apiKey });
+export const enrichLeadWithSearch = async (lead: Lead, customApiKey?: string): Promise<Lead> => {
+  const finalApiKey = customApiKey || apiKey;
+  const ai = new GoogleGenAI({ apiKey: finalApiKey });
   
   const prompt = `Pesquise informações detalhadas sobre a empresa/profissional "${lead.name}" localizada em "${lead.address}".
   
@@ -63,9 +67,11 @@ export const enrichLeadWithSearch = async (lead: Lead): Promise<Lead> => {
   1. Tente encontrar o CNPJ oficial da empresa.
   2. Verifique se a localização registrada no CNPJ (Cidade/Estado) coincide com o endereço fornecido: "${lead.address}".
   3. Encontre o LinkedIn da empresa, e-mail de contato e website oficial.
-  4. Resuma as descobertas no campo "details".
+  4. Verifique se a empresa está anunciando no Google (pesquise no Google Ads Transparency Center ou por anúncios ativos).
+  5. Resuma as descobertas no campo "details".
   
-  Se os dados de localização do CNPJ baterem com o endereço fornecido, defina "isLocationMatch" como true.`;
+  Se os dados de localização do CNPJ baterem com o endereço fornecido, defina "isLocationMatch" como true.
+  Se encontrar evidências de anúncios ativos no Google, defina "isAdvertising" como true.`;
 
   try {
     const response = await ai.models.generateContent({
@@ -84,6 +90,8 @@ export const enrichLeadWithSearch = async (lead: Lead): Promise<Lead> => {
             cnpj: { type: Type.STRING, description: "Número do CNPJ encontrado" },
             cnpjLocation: { type: Type.STRING, description: "Localização (Cidade/Estado) registrada no CNPJ" },
             isLocationMatch: { type: Type.BOOLEAN, description: "Se a localização do CNPJ bate com o endereço do lead" },
+            isAdvertising: { type: Type.BOOLEAN, description: "Se a empresa está anunciando no Google" },
+            adsDetails: { type: Type.STRING, description: "Detalhes sobre os anúncios encontrados" },
           }
         }
       },
@@ -99,6 +107,8 @@ export const enrichLeadWithSearch = async (lead: Lead): Promise<Lead> => {
       cnpj: enrichment.cnpj || lead.cnpj,
       cnpjLocation: enrichment.cnpjLocation || lead.cnpjLocation,
       isLocationMatch: enrichment.isLocationMatch ?? lead.isLocationMatch,
+      isAdvertising: enrichment.isAdvertising ?? lead.isAdvertising,
+      adsDetails: enrichment.adsDetails || lead.adsDetails,
     };
   } catch (error) {
     console.error("Error enriching lead:", error);
